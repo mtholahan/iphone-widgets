@@ -122,48 +122,79 @@ title: Milestones
 <script>
   const today = new Date();
   document.getElementById("today").textContent = today.toDateString();
+  let currentMode = "full";
 
-  let currentMode = "full"; // default
+  function parseDate(str) {
+    // Support MM/DD/YYYY
+    const [month, day, year] = str.split("/").map(n => parseInt(n, 10));
+    return new Date(year, month - 1, day);
+  }
+
+  function formatYears(days, label) {
+    const years = days / 365;
+    if (years < 2) {
+      const months = Math.round(days / 30);
+      return `≈${years.toFixed(1)} years (${months} months ${label})`;
+    } else if (years < 5) {
+      return `≈${years.toFixed(1)} years ${label}`;
+    } else {
+      return `≈${Math.round(years)} years ${label}`;
+    }
+  }
 
   function updateTable() {
     const rows = Array.from(document.querySelectorAll("tr[data-date]"));
 
-    // calculate deltas
     rows.forEach(row => {
-      const target = new Date(row.dataset.date);
+      const target = parseDate(row.dataset.date);
       const diff = Math.floor((today - target) / (1000 * 60 * 60 * 24));
-	  row.querySelector(".since-col").textContent = diff >= 0 ? diff.toLocaleString() : "-";
-      row.querySelector(".until-col").textContent = diff < 0 ? Math.abs(diff).toLocaleString() : "-";
+
+      // Days Since
+      if (diff >= 0) {
+        row.querySelector(".since-col").textContent = diff.toLocaleString();
+        row.querySelector(".since-col").title =
+          diff > 365 ? formatYears(diff, "since") : "";
+      } else {
+        row.querySelector(".since-col").textContent = "-";
+        row.querySelector(".since-col").title = "";
+      }
+
+      // Days Until
+      if (diff < 0) {
+        const until = Math.abs(diff);
+        row.querySelector(".until-col").textContent = until.toLocaleString();
+        row.querySelector(".until-col").title =
+          until > 365 ? formatYears(until, "until") : "";
+      } else {
+        row.querySelector(".until-col").textContent = "-";
+        row.querySelector(".until-col").title = "";
+      }
 
       row.dataset.diff = diff; // store for sorting
     });
 
-    // remove any old Today marker
+    // remove old Today marker
     document.querySelectorAll(".today-marker").forEach(el => el.remove());
 
     // sort rows
-    const tbody = document.querySelector("table").tBodies[0];
+    const tbody = document.querySelector("table tbody");
     rows
       .sort((a, b) => {
         const diffA = parseInt(a.dataset.diff, 10);
         const diffB = parseInt(b.dataset.diff, 10);
 
         if (currentMode === "countdown") {
-          // future events first
-          if (diffA < 0 && diffB < 0) {
-            return diffA - diffB; // both future
-          }
-          if (diffA < 0) return -1; // A is future, B is past
-          if (diffB < 0) return 1;  // B is future, A is past
+          if (diffA < 0 && diffB < 0) return diffA - diffB; // both future
+          if (diffA < 0) return -1; // A future, B past
+          if (diffB < 0) return 1;  // B future, A past
           return diffA - diffB;     // both past
         } else {
-          // full mode chronological
-          return new Date(a.dataset.date) - new Date(b.dataset.date);
+          return parseDate(a.dataset.date) - parseDate(b.dataset.date);
         }
       })
       .forEach(row => tbody.appendChild(row));
 
-    // insert Today marker row
+    // insert Today marker
     const markerRow = document.createElement("tr");
     markerRow.classList.add("today-marker");
     markerRow.innerHTML = `
@@ -172,30 +203,27 @@ title: Milestones
       </td>
     `;
 
-    // find the first past event (diff >= 0) in countdown mode, or just the right place in full mode
     let inserted = false;
     for (let row of tbody.querySelectorAll("tr[data-date]")) {
       const diff = parseInt(row.dataset.diff, 10);
-      if (diff >= 0) { // event is today or in the past
+      if (diff >= 0) {
         tbody.insertBefore(markerRow, row);
         inserted = true;
         break;
       }
     }
-    if (!inserted) {
-      tbody.appendChild(markerRow); // if all events are future, marker goes at bottom
-    }
+    if (!inserted) tbody.appendChild(markerRow);
   }
 
   function setMode(mode) {
-    currentMode = mode; // remember mode
+    currentMode = mode;
     const sinceCols = document.querySelectorAll(".since-col, th.since-col");
     if (mode === "countdown") {
       sinceCols.forEach(el => el.classList.add("hidden"));
     } else {
       sinceCols.forEach(el => el.classList.remove("hidden"));
     }
-    updateTable(); // re-run sort
+    updateTable();
   }
 
   // run once on load
