@@ -125,10 +125,16 @@ title: Milestones
   let currentMode = "full";
 
   function parseDate(str) {
-    // Support MM/DD/YYYY
-    const [month, day, year] = str.split("/").map(n => parseInt(n, 10));
-    return new Date(year, month - 1, day);
-  }
+	  if (str.includes("-")) {
+		// Assume ISO: YYYY-MM-DD
+		return new Date(str);
+	  } else if (str.includes("/")) {
+		// Assume US: MM/DD/YYYY
+		const [month, day, year] = str.split("/").map(n => parseInt(n, 10));
+		return new Date(year, month - 1, day);
+	  }
+	  return new Date(str); // fallback
+	}
 
   function formatYears(days, label) {
     const years = days / 365;
