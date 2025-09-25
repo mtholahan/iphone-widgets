@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Milestones</title>
+  <style>
+    body { font-family: -apple-system, Arial, sans-serif; margin: 2em; background: #f9f9f9; }
+    h1 { text-align: center; }
+    table { border-collapse: collapse; margin: 1em auto; min-width: 80%; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    th, td { border: 1px solid #ccc; padding: 12px; text-align: center; }
+    th { background: #f0f0f0; }
+    tr:hover { background: #f9f9ff; }
+    caption { caption-side: bottom; font-size: 0.9em; color: #555; margin-top: 10px; }
+    .controls { text-align: center; margin-bottom: 1em; }
+    button { padding: 8px 14px; margin: 0 5px; border: none; border-radius: 5px; cursor: pointer; }
+    button:hover { background: #eee; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1>📅 My Milestones</h1>
+
+  <div class="controls">
+    <button onclick="setMode('full')">Full Mode</button>
+    <button onclick="setMode('countdown')">Countdown Only</button>
+  </div>
+
+  <table id="milestone-table">
+    <tr>
+      <th>Event</th>
+      <th>Date</th>
+      <th class="since-col">Days Since</th>
+      <th class="until-col">Days Until</th>
+    </tr>
+    <!-- 🔽 Replace these rows with your own events -->
+    <tr data-date="2023-07-05">
+      <td>Job Change</td>
+      <td>2023-07-05</td>
+      <td class="since-col"></td>
+      <td class="until-col"></td>
+    </tr>
+    <tr data-date="2025-12-25">
+      <td>Christmas</td>
+      <td>2025-12-25</td>
+      <td class="since-col"></td>
+      <td class="until-col"></td>
+    </tr>
+    <tr data-date="2026-04-15">
+      <td>Tax Day</td>
+      <td>2026-04-15</td>
+      <td class="since-col"></td>
+      <td class="until-col"></td>
+    </tr>
+    <tr data-date="2026-04-15">
+      <td>Tax Day</td>
+      <td>2026-04-15</td>
+      <td class="since-col"></td>
+      <td class="until-col"></td>
+    </tr>
+    <tr data-date="2026-04-15">
+      <td>Tax Day</td>
+      <td>2026-04-15</td>
+      <td class="since-col"></td>
+      <td class="until-col"></td>
+    </tr>
+    <tr data-date="2026-04-15">
+      <td>Tax Day</td>
+      <td>2026-04-15</td>
+      <td class="since-col"></td>
+      <td class="until-col"></td>
+    </tr>
+    <tr data-date="2026-04-15">
+      <td>Tax Day</td>
+      <td>2026-04-15</td>
+      <td class="since-col"></td>
+      <td class="until-col"></td>
+    </tr>
+    <tr data-date="2026-04-15">
+      <td>Tax Day</td>
+      <td>2026-04-15</td>
+      <td class="since-col"></td>
+      <td class="until-col"></td>
+    </tr>
+    <tr data-date="2026-04-15">
+      <td>Tax Day</td>
+      <td>2026-04-15</td>
+      <td class="since-col"></td>
+      <td class="until-col"></td>
+    </tr>	
+    <!-- 🔼 Add/remove rows as needed -->
+  </table>
+
+  <caption>Today is <span id="today"></span></caption>
+
+  <script>
+    const today = new Date();
+    document.getElementById("today").textContent = today.toDateString();
+
+    function updateTable() {
+      document.querySelectorAll("tr[data-date]").forEach(row => {
+        const target = new Date(row.dataset.date);
+        const diff = Math.floor((today - target) / (1000*60*60*24));
+        row.querySelector(".since-col").textContent = diff >= 0 ? diff : "-";
+        row.querySelector(".until-col").textContent = diff < 0 ? Math.abs(diff) : "-";
+      });
+    }
+
+    function setMode(mode) {
+      const sinceCols = document.querySelectorAll(".since-col, th.since-col");
+      if (mode === "countdown") {
+        sinceCols.forEach(el => el.classList.add("hidden"));
+      } else {
+        sinceCols.forEach(el => el.classList.remove("hidden"));
+      }
+    }
+
+    updateTable(); // initial run
+  </script>
+</body>
+</html>
