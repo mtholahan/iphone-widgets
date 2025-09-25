@@ -147,8 +147,9 @@
     rows.forEach(row => {
       const target = new Date(row.dataset.date);
       const diff = Math.floor((today - target) / (1000 * 60 * 60 * 24));
-      row.querySelector(".since-col").textContent = diff >= 0 ? diff : "-";
-      row.querySelector(".until-col").textContent = diff < 0 ? Math.abs(diff) : "-";
+	  row.querySelector(".since-col").textContent = diff >= 0 ? diff.toLocaleString() : "-";
+      row.querySelector(".until-col").textContent = diff < 0 ? Math.abs(diff).toLocaleString() : "-";
+
       row.dataset.diff = diff; // store for sorting
     });
 
