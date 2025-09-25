@@ -1,9 +1,84 @@
 ---
 layout: default
-title: Milestones
+title: My Milestones
 ---
 
-<h1>📅 My Milestones</h1>
+<style>
+  .hidden {
+    display: none;
+  }
+  .years {
+    font-size: 0.8em;
+    color: #666;
+    margin-left: 4px;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 6px 10px;
+    text-align: center;
+  }
+  th {
+    background: #f2f2f2;
+  }
+  h1 {
+    display: flex;
+    align-items: center;
+  }
+  h1 img {
+    margin-right: 8px;
+  }
+  .mode-buttons {
+    margin-bottom: 10px;
+  }
+  .mode-buttons button {
+    margin-right: 5px;
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+</style>
+
+<h1>
+  <img src="https://img.icons8.com/color/48/calendar.png" alt="calendar icon" width="32" height="32"/>
+  My Milestones
+</h1>
+
+<div class="mode-buttons">
+  <button onclick="setMode('full')">Full Mode</button>
+  <button onclick="setMode('countdown')">Countdown Only</button>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Event</th>
+      <th>Date</th>
+      <th class="since-col">Days Since</th>
+      <th>Days Until</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- 🔽 Replace with your events -->
+    <tr data-date="2023-07-05">
+      <td>Job Change</td>
+      <td>2023-07-05</td>
+      <td class="since-col"></td>
+      <td class="until-col"></td>
+    </tr>
+    <tr data-date="2025-12-25">
+      <td>Christmas</td>
+      <td>2025-12-25</td>
+      <td class="since-col"></td>
+      <td class="until-col"></td>
+    </tr>
+    <tr data-date="2026-04-15">
+      <td>Tax Day</td>
+      <td>2026-04-15</td>
+      <td class="since-col"></td>
+
 
   <div class="controls">
     <button onclick="setMode('full')">Full Mode</button>
@@ -148,78 +223,93 @@ title: Milestones
     }
   }
 
-  function updateTable() {
-    const rows = Array.from(document.querySelectorAll("tr[data-date]"));
-
-    rows.forEach(row => {
-      const target = parseDate(row.dataset.date);
-      const diff = Math.floor((today - target) / (1000 * 60 * 60 * 24));
-
-      // Days Since
-      if (diff >= 0) {
-        row.querySelector(".since-col").textContent = diff.toLocaleString();
-        row.querySelector(".since-col").title =
-          diff > 365 ? formatYears(diff, "since") : "";
-      } else {
-        row.querySelector(".since-col").textContent = "-";
-        row.querySelector(".since-col").title = "";
-      }
-
-      // Days Until
-      if (diff < 0) {
-        const until = Math.abs(diff);
-        row.querySelector(".until-col").textContent = until.toLocaleString();
-        row.querySelector(".until-col").title =
-          until > 365 ? formatYears(until, "until") : "";
-      } else {
-        row.querySelector(".until-col").textContent = "-";
-        row.querySelector(".until-col").title = "";
-      }
-
-      row.dataset.diff = diff; // store for sorting
-    });
-
-    // remove old Today marker
-    document.querySelectorAll(".today-marker").forEach(el => el.remove());
-
-    // sort rows
-    const tbody = document.querySelector("table tbody");
-    rows
-      .sort((a, b) => {
-        const diffA = parseInt(a.dataset.diff, 10);
-        const diffB = parseInt(b.dataset.diff, 10);
-
-        if (currentMode === "countdown") {
-          if (diffA < 0 && diffB < 0) return diffA - diffB; // both future
-          if (diffA < 0) return -1; // A future, B past
-          if (diffB < 0) return 1;  // B future, A past
-          return diffA - diffB;     // both past
-        } else {
-          return parseDate(a.dataset.date) - parseDate(b.dataset.date);
-        }
-      })
-      .forEach(row => tbody.appendChild(row));
-
-    // insert Today marker
-    const markerRow = document.createElement("tr");
-    markerRow.classList.add("today-marker");
-    markerRow.innerHTML = `
-      <td colspan="4" style="background:#fffae6; text-align:center; font-weight:bold;">
-        ⬇️ Today (${today.toDateString()}) ⬇️
-      </td>
-    `;
-
-    let inserted = false;
-    for (let row of tbody.querySelectorAll("tr[data-date]")) {
-      const diff = parseInt(row.dataset.diff, 10);
-      if (diff >= 0) {
-        tbody.insertBefore(markerRow, row);
-        inserted = true;
-        break;
-      }
-    }
-    if (!inserted) tbody.appendChild(markerRow);
+function formatYears(days, label) {
+  const years = days / 365;
+  if (years < 2) {
+    const months = Math.round(days / 30);
+    return `≈${years.toFixed(1)}y (${months}m ${label})`;
+  } else if (years < 5) {
+    return `≈${years.toFixed(1)}y ${label}`;
+  } else {
+    return `≈${Math.round(years)}y ${label}`;
   }
+}
+
+function updateTable() {
+  const rows = Array.from(document.querySelectorAll("tr[data-date]"));
+
+  rows.forEach(row => {
+    const target = parseDate(row.dataset.date);
+    const diff = Math.floor((today - target) / (1000 * 60 * 60 * 24));
+
+    // Days Since
+    const sinceCell = row.querySelector(".since-col");
+    if (diff >= 0) {
+      sinceCell.innerHTML = diff.toLocaleString();
+      if (diff > 365) {
+        sinceCell.innerHTML += `<br><span class="years">${formatYears(diff, "since")}</span>`;
+      }
+    } else {
+      sinceCell.textContent = "-";
+    }
+
+    // Days Until
+    const untilCell = row.querySelector(".until-col");
+    if (diff < 0) {
+      const until = Math.abs(diff);
+      untilCell.innerHTML = until.toLocaleString();
+      if (until > 365) {
+        untilCell.innerHTML += `<br><span class="years">${formatYears(until, "until")}</span>`;
+      }
+    } else {
+      untilCell.textContent = "-";
+    }
+
+    row.dataset.diff = diff; // store for sorting
+  });
+
+  // remove old Today marker
+  document.querySelectorAll(".today-marker").forEach(el => el.remove());
+
+  // sort rows (same as before)
+  const tbody = document.querySelector("table tbody");
+  rows
+    .sort((a, b) => {
+      const diffA = parseInt(a.dataset.diff, 10);
+      const diffB = parseInt(b.dataset.diff, 10);
+
+      if (currentMode === "countdown") {
+        if (diffA < 0 && diffB < 0) return diffA - diffB;
+        if (diffA < 0) return -1;
+        if (diffB < 0) return 1;
+        return diffA - diffB;
+      } else {
+        return parseDate(a.dataset.date) - parseDate(b.dataset.date);
+      }
+    })
+    .forEach(row => tbody.appendChild(row));
+
+  // insert Today marker
+  const markerRow = document.createElement("tr");
+  markerRow.classList.add("today-marker");
+  markerRow.innerHTML = `
+    <td colspan="4" style="background:#fffae6; text-align:center; font-weight:bold;">
+      ⬇️ Today (${today.toDateString()}) ⬇️
+    </td>
+  `;
+
+  let inserted = false;
+  for (let row of tbody.querySelectorAll("tr[data-date]")) {
+    const diff = parseInt(row.dataset.diff, 10);
+    if (diff >= 0) {
+      tbody.insertBefore(markerRow, row);
+      inserted = true;
+      break;
+    }
+  }
+  if (!inserted) tbody.appendChild(markerRow);
+}
+
 
   function setMode(mode) {
     currentMode = mode;
