@@ -43,7 +43,7 @@ title: My Milestones
 
 <h1>
   <img src="https://img.icons8.com/color/48/calendar.png" alt="calendar icon" width="32" height="32"/>
-  My Milestones
+  Milestones
 </h1>
 
 <div class="mode-buttons">
@@ -203,6 +203,18 @@ title: My Milestones
       <td class="since-col"></td>
       <td class="until-col"></td>
     </tr>
+    <tr data-date="2022-12-31">
+      <td>Joe's suffering ended</td>
+      <td>2022-12-31</td>
+      <td class="since-col"></td>
+      <td class="until-col"></td>
+    </tr>
+    <tr data-date="2023-01-01">
+      <td>Last I saw Rita</td>
+      <td>2023-01-01</td>
+      <td class="since-col"></td>
+      <td class="until-col"></td>
+    </tr>
     <!-- 🔼 Add/remove rows as needed -->
   </table>
 
@@ -214,131 +226,129 @@ title: My Milestones
   let currentMode = "full";
 
   function parseDate(str) {
-	  if (str.includes("-")) {
-		// Assume ISO: YYYY-MM-DD
-		return new Date(str);
-	  } else if (str.includes("/")) {
-		// Assume US: MM/DD/YYYY
-		const [month, day, year] = str.split("/").map(n => parseInt(n, 10));
-		return new Date(year, month - 1, day);
-	  }
-	  return new Date(str); // fallback
-	}
-
-  function formatYears(days, label) {
-    const years = days / 365;
-    if (years < 2) {
-      const months = Math.round(days / 30);
-      return `≈${years.toFixed(1)} years (${months} months ${label})`;
-    } else if (years < 5) {
-      return `≈${years.toFixed(1)} years ${label}`;
-    } else {
-      return `≈${Math.round(years)} years ${label}`;
+    if (str.includes("-")) return new Date(str);
+    if (str.includes("/")) {
+      const [month, day, year] = str.split("/").map(n => parseInt(n, 10));
+      return new Date(year, month - 1, day);
     }
+    return new Date(str);
   }
 
-function formatYears(days, label) {
-  const years = days / 365;
-  if (years < 2) {
-    const months = Math.round(days / 30);
-    return `≈${years.toFixed(1)}y (${months}m ${label})`;
-  } else if (years < 5) {
-    return `≈${years.toFixed(1)}y ${label}`;
-  } else {
-    return `≈${Math.round(years)}y ${label}`;
+  // --- 🧠 True calendar-aware time delta formatter ---
+  function formatSmartDelta(days, label) {
+    const target = new Date(today.getTime() - days * 86400000);
+    const earlier = target < today ? target : today;
+    const later = target < today ? today : target;
+
+    let years = later.getFullYear() - earlier.getFullYear();
+    let months = later.getMonth() - earlier.getMonth();
+    let daysLeft = later.getDate() - earlier.getDate();
+
+    if (daysLeft < 0) {
+      const prevMonth = new Date(later.getFullYear(), later.getMonth(), 0);
+      daysLeft += prevMonth.getDate();
+      months -= 1;
+    }
+    if (months < 0) {
+      months += 12;
+      years -= 1;
+    }
+
+    // Handle sub-day granularity only if <1 day
+    let hours = 0, minutes = 0;
+    if (days < 1) {
+      const diffMs = Math.abs(today - target);
+      hours = Math.floor(diffMs / 3600000);
+      minutes = Math.floor((diffMs % 3600000) / 60000);
+    }
+
+    // Build compact string dynamically (max 3 significant units)
+    const parts = [];
+    if (years) parts.push(`${years}y`);
+    if (months && parts.length < 3) parts.push(`${months}m`);
+    if (daysLeft && parts.length < 3) parts.push(`${daysLeft}d`);
+    if (!years && !months && !daysLeft && hours && parts.length < 3) parts.push(`${hours}h`);
+    if (!years && !months && !daysLeft && hours < 24 && minutes && parts.length < 3) parts.push(`${minutes}m`);
+
+    // Fallback for very small diffs (<1m)
+    if (parts.length === 0) parts.push("0m");
+
+    return `≈${parts.join(" ")} ${label}`;
   }
-}
 
-function updateTable() {
-  const rows = Array.from(document.querySelectorAll("tr[data-date]"));
+  function updateTable() {
+    const rows = Array.from(document.querySelectorAll("tr[data-date]"));
 
-  rows.forEach(row => {
-    const target = parseDate(row.dataset.date);
-    const diff = Math.floor((today - target) / (1000 * 60 * 60 * 24));
+    rows.forEach(row => {
+      const target = parseDate(row.dataset.date);
+      const diffMs = today - target;
+      const diffDays = diffMs / 86400000;
 
-    // Days Since
-    const sinceCell = row.querySelector(".since-col");
-    if (diff >= 0) {
-      sinceCell.innerHTML = diff.toLocaleString();
-      if (diff > 365) {
-        sinceCell.innerHTML += `<br><span class="years">${formatYears(diff, "since")}</span>`;
-      }
-    } else {
-      sinceCell.textContent = "-";
-    }
+      const sinceCell = row.querySelector(".since-col");
+      const untilCell = row.querySelector(".until-col");
 
-    // Days Until
-    const untilCell = row.querySelector(".until-col");
-    if (diff < 0) {
-      const until = Math.abs(diff);
-      untilCell.innerHTML = until.toLocaleString();
-      if (until > 365) {
-        untilCell.innerHTML += `<br><span class="years">${formatYears(until, "until")}</span>`;
-      }
-    } else {
-      untilCell.textContent = "-";
-    }
-
-    row.dataset.diff = diff; // store for sorting
-  });
-
-  // remove old Today marker
-  document.querySelectorAll(".today-marker").forEach(el => el.remove());
-
-  // sort rows (same as before)
-  const tbody = document.querySelector("table tbody");
-  rows
-    .sort((a, b) => {
-      const diffA = parseInt(a.dataset.diff, 10);
-      const diffB = parseInt(b.dataset.diff, 10);
-
-      if (currentMode === "countdown") {
-        if (diffA < 0 && diffB < 0) return diffA - diffB;
-        if (diffA < 0) return -1;
-        if (diffB < 0) return 1;
-        return diffA - diffB;
+      if (diffDays >= 0) {
+        const diff = Math.floor(diffDays);
+        sinceCell.innerHTML = diff.toLocaleString();
+        sinceCell.innerHTML += `<br><span class="years">${formatSmartDelta(diff, "since")}</span>`;
+        untilCell.textContent = "-";
       } else {
-        return parseDate(a.dataset.date) - parseDate(b.dataset.date);
+        const diff = Math.abs(Math.floor(diffDays));
+        untilCell.innerHTML = diff.toLocaleString();
+        untilCell.innerHTML += `<br><span class="years">${formatSmartDelta(diff, "until")}</span>`;
+        sinceCell.textContent = "-";
       }
-    })
-    .forEach(row => tbody.appendChild(row));
 
-  // insert Today marker
-  const markerRow = document.createElement("tr");
-  markerRow.classList.add("today-marker");
-  markerRow.innerHTML = `
-    <td colspan="4" style="background:#fffae6; text-align:center; font-weight:bold;">
-      ⬇️ Today (${today.toDateString()}) ⬇️
-    </td>
-  `;
+      row.dataset.diff = Math.floor(diffDays);
+    });
 
-  let inserted = false;
-  for (let row of tbody.querySelectorAll("tr[data-date]")) {
-    const diff = parseInt(row.dataset.diff, 10);
-    if (diff >= 0) {
-      tbody.insertBefore(markerRow, row);
-      inserted = true;
-      break;
+    document.querySelectorAll(".today-marker").forEach(el => el.remove());
+
+    const tbody = document.querySelector("table tbody");
+    rows
+      .sort((a, b) => {
+        const diffA = parseInt(a.dataset.diff, 10);
+        const diffB = parseInt(b.dataset.diff, 10);
+        if (currentMode === "countdown") {
+          if (diffA < 0 && diffB < 0) return diffA - diffB;
+          if (diffA < 0) return -1;
+          if (diffB < 0) return 1;
+          return diffA - diffB;
+        } else {
+          return parseDate(a.dataset.date) - parseDate(b.dataset.date);
+        }
+      })
+      .forEach(row => tbody.appendChild(row));
+
+    const markerRow = document.createElement("tr");
+    markerRow.classList.add("today-marker");
+    markerRow.innerHTML = `
+      <td colspan="4" style="background:#fffae6; text-align:center; font-weight:bold;">
+        ⬇️ Today (${today.toDateString()}) ⬇️
+      </td>
+    `;
+    let inserted = false;
+    for (let row of tbody.querySelectorAll("tr[data-date]")) {
+      const diff = parseInt(row.dataset.diff, 10);
+      if (diff >= 0) {
+        tbody.insertBefore(markerRow, row);
+        inserted = true;
+        break;
+      }
     }
+    if (!inserted) tbody.appendChild(markerRow);
   }
-  if (!inserted) tbody.appendChild(markerRow);
-}
-
 
   function setMode(mode) {
     currentMode = mode;
     const sinceCols = document.querySelectorAll(".since-col, th.since-col");
-    if (mode === "countdown") {
-      sinceCols.forEach(el => el.classList.add("hidden"));
-    } else {
-      sinceCols.forEach(el => el.classList.remove("hidden"));
-    }
+    sinceCols.forEach(el => el.classList.toggle("hidden", mode === "countdown"));
     updateTable();
   }
 
-  // run once on load
   updateTable();
 </script>
+
 
 </body>
 </html>
